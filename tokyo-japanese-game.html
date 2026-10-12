@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tokyo Spoken Japanese Trainer</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    margin: 0;
+    padding: 12px;
+    background: #f0f4f8;
+    color: #1a1a1a;
+    line-height: 1.45;
+  }
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 8px; color: #0d47a1; }
+  .level-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+  }
+  .progress {
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    margin: 6px 0 14px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #1976d2;
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .prompt {
+    background: #e3f2fd;
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 1.05rem;
+  }
+  .construction {
+    min-height: 56px;
+    background: #fafafa;
+    border: 2px dashed #90caf9;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+  .construction .placeholder {
+    color: #90a4ae;
+    font-style: italic;
+  }
+  .tile, .placed {
+    display: inline-block;
+    padding: 10px 14px;
+    margin: 4px;
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .tile:active, .placed:active { background: #bbdefb; }
+  .placed { background: #c8e6c9; border-color: #81c784; }
+  .tiles-pool {
+    margin: 8px 0 12px;
+    min-height: 60px;
+  }
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  button {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    background: #1976d2;
+    color: white;
+    touch-action: manipulation;
+  }
+  button:hover { background: #1565c0; }
+  button.secondary { background: #546e7a; }
+  button.secondary:hover { background: #455a64; }
+  button:disabled { background: #b0bec5; cursor: not-allowed; }
+  .feedback {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 8px;
+    display: none;
+  }
+  .feedback.correct { background: #e8f5e9; border-left: 4px solid #2e7d32; }
+  .feedback.wrong { background: #fff3e0; border-left: 4px solid #ef6c00; }
+  .model { font-weight: 600; color: #0d47a1; margin: 8px 0; }
+  .explanation { margin-top: 6px; }
+  .mistake { margin: 4px 0; }
+  .level-select {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+  .level-select button { margin: 4px; background: #78909c; padding: 8px 12px; }
+  .level-select button.active { background: #1976d2; }
+  .level-select button.locked { opacity: 0.45; cursor: not-allowed; }
+  footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Tokyo Spoken Japanese Trainer</h1>
+  <div class="level-bar">
+    <span id="levelName">Level 1</span>
+    <span id="questionCounter">1 / 6</span>
+  </div>
+  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="prompt" id="prompt">Loading...</div>
+
+  <div class="construction" id="construction">
+    <span class="placeholder">Tap words below to build the sentence</span>
+  </div>
+
+  <div class="tiles-pool" id="tilesPool"></div>
+
+  <div class="buttons">
+    <button id="checkBtn">Check</button>
+    <button id="clearBtn" class="secondary">Clear</button>
+    <button id="hearBtn" class="secondary">Hear Model</button>
+    <button id="hintBtn" class="secondary">Hint</button>
+    <button id="nextBtn" class="secondary" disabled>Next</button>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="level-select" id="levelSelect"></div>
+
+  <footer>
+    Tap words to build polite sentences for Tokyo.<br>
+    Progress saved in your browser.
+  </footer>
+</div>
+
+<script>
+const levels = [
+  {
+    name: "Level 1: Basics & Introductions",
+    questions: [
+      {
+        prompt: "Say: I am a tourist.",
+        model: "watashi wa kankoukyaku desu",
+        jp: "私は観光客です",
+        tiles: ["watashi", "wa", "ga", "kankoukyaku", "desu", "imasu", "no"],
+        explanation: "Topic (I) + wa + noun + desu. 'Wa' marks the topic. 'Desu' is the polite copula.",
+        hint: "watashi + wa + kankoukyaku + desu"
+      },
+      {
+        prompt: "Say: This is my first time in Tokyo.",
+        model: "kore wa tokyo de hajimete desu",
+        jp: "これは東京ではじめてです",
+        tiles: ["kore", "wa", "tokyo", "de", "ni", "hajimete", "desu", "ga"],
+        explanation: "Topic 'kore wa' + place 'tokyo de' + 'hajimete desu'. 'De' marks the location of the experience.",
+        hint: "kore wa tokyo de hajimete desu"
+      },
+      {
+        prompt: "Ask: Are you from Tokyo?",
+        model: "tokyo kara desu ka",
+        jp: "東京からですか",
+        tiles: ["tokyo", "kara", "de", "desu", "ka", "wa", "imasu"],
+        explanation: "'Kara' = from. End with 'ka' for a question.",
+        hint: "tokyo kara desu ka"
+      },
+      {
+        prompt: "Say: Thank you very much.",
+        model: "arigatou gozaimasu",
+        jp: "ありがとうございます",
+        tiles: ["arigatou", "gozaimasu", "desu", "sumimasen", "onegaishimasu"],
+        explanation: "Standard polite thank-you for staff and strangers.",
+        hint: "arigatou gozaimasu"
+      },
+      {
+        prompt: "Say: Excuse me (to get attention).",
+        model: "sumimasen",
+        jp: "すみません",
+        tiles: ["sumimasen", "arigatou", "kudasai", "onegaishimasu"],
+        explanation: "Essential starter before any request or question.",
+        hint: "sumimasen"
+      },
+      {
+        prompt: "Say: I am American.",
+        model: "watashi wa amerika-jin desu",
+        jp: "私はアメリカ人です",
+        tiles: ["watashi", "wa", "ga", "amerika-jin", "desu", "no", "imasu"],
+        explanation: "Nationality ends with -jin. Topic + wa + nationality + desu.",
+        hint: "watashi wa amerika-jin desu"
+      }
+    ]
+  },
+  {
+    name: "Level 2: Directions & Metro",
+    questions: [
+      {
+        prompt: "Ask: Where is the Shibuya station exit?",
+        model: "sumimasen shibuya eki no deguchi wa doko desu ka",
+        jp: "すみません、渋谷駅の出口はどこですか",
+        tiles: ["sumimasen", "shibuya", "eki", "no", "deguchi", "wa", "ga", "doko", "desu", "ka", "de"],
+        explanation: "'No' connects station and exit. 'Wa' marks the topic. 'Doko desu ka' = where?",
+        hint: "sumimasen ... no deguchi wa doko desu ka"
+      },
+      {
+        prompt: "Ask: Can I go to Shinjuku on this train?",
+        model: "kono densha de shinjuku ni ikemasu ka",
+        jp: "この電車で新宿に行けますか",
+        tiles: ["kono", "densha", "de", "ni", "shinjuku", "ikemasu", "ka", "wa", "o"],
+        explanation: "'De' = by means of this train. 'Ni' = destination.",
+        hint: "kono densha de shinjuku ni ikemasu ka"
+      },
+      {
+        prompt: "Say: I want to go from here to Tokyo Station.",
+        model: "koko kara tokyo eki made ikitai desu",
+        jp: "ここから東京駅まで行きたいです",
+        tiles: ["koko", "kara", "tokyo", "eki", "made", "ni", "ikitai", "desu", "de"],
+        explanation: "'Kara' = from, 'made' = until/to. 'Ikitai desu' = want to go.",
+        hint: "koko kara ... made ikitai desu"
+      },
+      {
+        prompt: "Ask: Which platform is for the Yamanote Line?",
+        model: "yamanote sen no hoomu wa doko desu ka",
+        jp: "山手線のホームはどこですか",
+        tiles: ["yamanote", "sen", "no", "hoomu", "wa", "doko", "desu", "ka", "de", "ga"],
+        explanation: "'No' connects the line and the platform.",
+        hint: "yamanote sen no hoomu wa doko desu ka"
+      },
+      {
+        prompt: "Say: Please tell me the way to the subway.",
+        model: "chikatetsu e no michi o oshiete kudasai",
+        jp: "地下鉄への道を教えてください",
+        tiles: ["chikatetsu", "e", "no", "michi", "o", "oshiete", "kudasai", "ni", "de", "wa"],
+        explanation: "'O' marks the object. 'Kudasai' makes a polite request.",
+        hint: "... o oshiete kudasai"
+      },
+      {
+        prompt: "Ask: Is this the train to Ikebukuro?",
+        model: "kore wa ikebukuro iki desu ka",
+        jp: "これは池袋行きですか",
+        tiles: ["kore", "wa", "ikebukuro", "iki", "desu", "ka", "ni", "de", "ga"],
+        explanation: "'Iki' means bound for. Clear and polite for station staff.",
+        hint: "kore wa ikebukuro iki desu ka"
+      }
+    ]
+  },
+  {
+    name: "Level 3: Ordering Food",
+    questions: [
+      {
+        prompt: "Order: One ramen, please.",
+        model: "ramen o hitotsu kudasai",
+        jp: "ラーメンを一つください",
+        tiles: ["ramen", "o", "hitotsu", "kudasai", "wa", "ni", "onegaishimasu", "desu"],
+        explanation: "'O' marks the object. 'Hitotsu' = one. 'Kudasai' = please.",
+        hint: "ramen o hitotsu kudasai"
+      },
+      {
+        prompt: "Say: Water, please.",
+        model: "mizu o onegaishimasu",
+        jp: "水をお願いします",
+        tiles: ["mizu", "o", "onegaishimasu", "kudasai", "wa", "desu", "ka"],
+        explanation: "'Onegaishimasu' is a soft polite request.",
+        hint: "mizu o onegaishimasu"
+      },
+      {
+        prompt: "Ask: What do you recommend?",
+        model: "osusume wa nan desu ka",
+        jp: "おすすめは何ですか",
+        tiles: ["osusume", "wa", "nan", "desu", "ka", "ga", "o", "no"],
+        explanation: "Topic + wa + nan desu ka. Very useful at restaurants.",
+        hint: "osusume wa nan desu ka"
+      },
+      {
+        prompt: "Say: The check, please.",
+        model: "okaikei o onegaishimasu",
+        jp: "お会計をお願いします",
+        tiles: ["okaikei", "o", "onegaishimasu", "kudasai", "wa", "desu"],
+        explanation: "Standard way to ask for the bill.",
+        hint: "okaikei o onegaishimasu"
+      },
+      {
+        prompt: "Say: I would like sushi.",
+        model: "sushi o onegaishimasu",
+        jp: "寿司をお願いします",
+        tiles: ["sushi", "o", "onegaishimasu", "kudasai", "wa", "ni", "desu"],
+        explanation: "Simple polite request that works for most food.",
+        hint: "sushi o onegaishimasu"
+      },
+      {
+        prompt: "Ask: Is this spicy?",
+        model: "kore wa karai desu ka",
+        jp: "これは辛いですか",
+        tiles: ["kore", "wa", "karai", "desu", "ka", "ga", "o", "ni"],
+        explanation: "Topic + wa + adjective + desu ka.",
+        hint: "kore wa karai desu ka"
+      }
+    ]
+  },
+  {
+    name: "Level 4: Shopping & Souvenirs",
+    questions: [
+      {
+        prompt: "Ask: How much is this?",
+        model: "kore wa ikura desu ka",
+        jp: "これはいくらですか",
+        tiles: ["kore", "wa", "ikura", "desu", "ka", "ga", "o", "no"],
+        explanation: "Standard price question.",
+        hint: "kore wa ikura desu ka"
+      },
+      {
+        prompt: "Say: I want to buy a souvenir.",
+        model: "omiyage o kaitai desu",
+        jp: "お土産を買いたいです",
+        tiles: ["omiyage", "o", "kaitai", "desu", "wa", "ni", "kudasai", "no"],
+        explanation: "'O' marks what you want. 'Kaitai desu' = want to buy.",
+        hint: "omiyage o kaitai desu"
+      },
+      {
+        prompt: "Ask: Do you have this in a smaller size?",
+        model: "kore wa motto chiisai saizu ga arimasu ka",
+        jp: "これはもっと小さいサイズがありますか",
+        tiles: ["kore", "wa", "motto", "chiisai", "saizu", "ga", "arimasu", "ka", "o", "ni", "desu"],
+        explanation: "'Ga' marks the subject of 'arimasu' (exists).",
+        hint: "... saizu ga arimasu ka"
+      },
+      {
+        prompt: "Say: This one too, please.",
+        model: "kore mo onegaishimasu",
+        jp: "これもお願いします",
+        tiles: ["kore", "mo", "onegaishimasu", "wa", "o", "kudasai", "desu"],
+        explanation: "'Mo' = also / too. Common when adding items.",
+        hint: "kore mo onegaishimasu"
+      },
+      {
+        prompt: "Ask: Can I pay by card?",
+        model: "kaado de haraemasu ka",
+        jp: "カードで払えますか",
+        tiles: ["kaado", "de", "haraemasu", "ka", "ni", "o", "wa", "desu"],
+        explanation: "'De' = by means of (card).",
+        hint: "kaado de haraemasu ka"
+      },
+      {
+        prompt: "Say: Thank you. I'll take this.",
+        model: "arigatou gozaimasu kore o kudasai",
+        jp: "ありがとうございます、これをください",
+        tiles: ["arigatou", "gozaimasu", "kore", "o", "kudasai", "wa", "ni", "onegaishimasu"],
+        explanation: "Thank + object + o + kudasai.",
+        hint: "arigatou gozaimasu kore o kudasai"
+      }
+    ]
+  },
+  {
+    name: "Level 5: Mixed Real Scenarios",
+    questions: [
+      {
+        prompt: "At a station: How do I get to Asakusa from here?",
+        model: "sumimasen koko kara asakusa made dou ikimasu ka",
+        jp: "すみません、ここから浅草までどう行きますか",
+        tiles: ["sumimasen", "koko", "kara", "asakusa", "made", "dou", "ikimasu", "ka", "ni", "de", "wa"],
+        explanation: "Sumimasen + from-to + how do I go.",
+        hint: "sumimasen koko kara asakusa made dou ikimasu ka"
+      },
+      {
+        prompt: "At a restaurant: I'd like the ramen and also water, please.",
+        model: "ramen to mizu o onegaishimasu",
+        jp: "ラーメンと水をお願いします",
+        tiles: ["ramen", "to", "mizu", "o", "onegaishimasu", "wa", "ni", "kudasai", "desu"],
+        explanation: "'To' connects the two items in one request.",
+        hint: "ramen to mizu o onegaishimasu"
+      },
+      {
+        prompt: "Shopping: This is a souvenir for a friend. Do you have a gift box?",
+        model: "kore wa tomodachi e no omiyage desu gifuto bakkusu wa arimasu ka",
+        jp: "これは友達へのお土産です。ギフトボックスはありますか",
+        tiles: ["kore", "wa", "tomodachi", "e", "no", "omiyage", "desu", "gifuto", "bakkusu", "wa", "arimasu", "ka", "ga", "o"],
+        explanation: "Explain purpose, then ask if the box exists.",
+        hint: "kore wa ... desu. ... wa arimasu ka"
+      },
+      {
+        prompt: "On the metro: Is this seat free?",
+        model: "kono seki wa aite imasu ka",
+        jp: "この席は空いていますか",
+        tiles: ["kono", "seki", "wa", "aite", "imasu", "ka", "ga", "desu", "o"],
+        explanation: "'Aite imasu' = is open/available.",
+        hint: "kono seki wa aite imasu ka"
+      },
+      {
+        prompt: "To a stranger: Sorry, can you take a photo of us?",
+        model: "sumimasen shashin o totte kudasai",
+        jp: "すみません、写真を撮ってください",
+        tiles: ["sumimasen", "shashin", "o", "totte", "kudasai", "wa", "ni", "onegaishimasu"],
+        explanation: "Object + o + verb-te form + kudasai.",
+        hint: "sumimasen shashin o totte kudasai"
+      },
+      {
+        prompt: "Leaving a shop: Thank you very much. Goodbye.",
+        model: "arigatou gozaimasu sayounara",
+        jp: "ありがとうございます、さようなら",
+        tiles: ["arigatou", "gozaimasu", "sayounara", "sumimasen", "kudasai", "desu"],
+        explanation: "Polite closing. Fine for shops.",
+        hint: "arigatou gozaimasu sayounara"
+      }
+    ]
+  }
+];
+
+let currentLevel = 0;
+let currentQ = 0;
+let unlocked = parseInt(localStorage.getItem('tokyoJpUnlocked') || '1');
+let selected = [];
+
+function normalize(s) {
+  return s.toLowerCase().replace(/[.,!?]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) {
+    alert('Speech not supported in this browser.');
+    return;
+  }
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP';
+  u.rate = 0.9;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function renderConstruction() {
+  const area = document.getElementById('construction');
+  area.innerHTML = '';
+  if (selected.length === 0) {
+    area.innerHTML = '<span class="placeholder">Tap words below to build the sentence</span>';
+    return;
+  }
+  selected.forEach((word, idx) => {
+    const span = document.createElement('span');
+    span.className = 'placed';
+    span.textContent = word;
+    span.onclick = () => {
+      selected.splice(idx, 1);
+      renderConstruction();
+      renderTiles();
+    };
+    area.appendChild(span);
+  });
+}
+
+function renderTiles() {
+  const pool = document.getElementById('tilesPool');
+  pool.innerHTML = '';
+  const q = levels[currentLevel].questions[currentQ];
+
+  const counts = {};
+  q.tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
+  selected.forEach(t => {
+    if (counts[t] !== undefined) counts[t]--;
+  });
+
+  const toShow = [];
+  Object.keys(counts).forEach(word => {
+    const remaining = Math.max(0, counts[word]);
+    for (let i = 0; i < remaining; i++) toShow.push(word);
+  });
+
+  shuffle(toShow).forEach(word => {
+    const btn = document.createElement('span');
+    btn.className = 'tile';
+    btn.textContent = word;
+    btn.onclick = () => {
+      selected.push(word);
+      renderConstruction();
+      renderTiles();
+    };
+    pool.appendChild(btn);
+  });
+}
+
+function loadQuestion() {
+  selected = [];
+  const level = levels[currentLevel];
+  const q = level.questions[currentQ];
+  document.getElementById('levelName').textContent = level.name;
+  document.getElementById('questionCounter').textContent = `${currentQ + 1} / ${level.questions.length}`;
+  document.getElementById('prompt').textContent = q.prompt;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('nextBtn').disabled = true;
+  document.getElementById('checkBtn').disabled = false;
+  renderConstruction();
+  renderTiles();
+  updateProgress();
+  updateLevelButtons();
+}
+
+function updateProgress() {
+  const total = levels[currentLevel].questions.length;
+  const pct = (currentQ / total) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function updateLevelButtons() {
+  const container = document.getElementById('levelSelect');
+  container.innerHTML = '<strong>Levels:</strong> ';
+  levels.forEach((lv, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = i + 1;
+    if (i + 1 > unlocked) {
+      btn.classList.add('locked');
+      btn.disabled = true;
+    }
+    if (i === currentLevel) btn.classList.add('active');
+    btn.onclick = () => {
+      if (i + 1 <= unlocked) {
+        currentLevel = i;
+        currentQ = 0;
+        loadQuestion();
+      }
+    };
+    container.appendChild(btn);
+  });
+}
+
+function analyzeMistakes(selected, model) {
+  const mistakes = [];
+  const modelWords = model.split(' ');
+  const politeEndings = ['desu', 'masu', 'kudasai', 'onegaishimasu', 'gozaimasu', 'imasu', 'ikemasu', 'arimasu', 'haraemasu', 'ikitai'];
+
+  const hasPolite = selected.some(w => politeEndings.includes(w));
+  if (!hasPolite && modelWords.some(w => politeEndings.includes(w))) {
+    mistakes.push('Missing a polite ending (desu, masu, kudasai, onegaishimasu, etc.).');
+  }
+
+  const particleChecks = [
+    { particle: 'wa', name: 'topic marker wa' },
+    { particle: 'ga', name: 'subject marker ga' },
+    { particle: 'o', name: 'object marker o' },
+    { particle: 'ni', name: 'destination/time marker ni' },
+    { particle: 'de', name: 'location/means marker de' },
+    { particle: 'no', name: 'possessive/modifier no' },
+    { particle: 'kara', name: 'from marker kara' },
+    { particle: 'made', name: 'until marker made' },
+    { particle: 'to', name: 'and/with marker to' },
+    { particle: 'mo', name: 'also marker mo' },
+    { particle: 'e', name: 'direction marker e' },
+    { particle: 'ka', name: 'question marker ka' }
+  ];
+
+  particleChecks.forEach(p => {
+    const inModel = modelWords.includes(p.particle);
+    const inSelected = selected.includes(p.particle);
+    if (inModel && !inSelected) {
+      mistakes.push(`Missing the ${p.name}.`);
+    }
+  });
+
+  // Simple order note if lengths match but content differs
+  if (selected.length === modelWords.length && selected.join(' ') !== model) {
+    mistakes.push('Word order looks off. Japanese usually puts the topic early and the verb/polite ending last.');
+  }
+
+  return mistakes;
+}
+
+function checkAnswer() {
+  const q = levels[currentLevel].questions[currentQ];
+  const user = normalize(selected.join(' '));
+  const modelNorm = normalize(q.model);
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'block';
+
+  if (user === modelNorm) {
+    fb.className = 'feedback correct';
+    fb.innerHTML = `<strong>Correct!</strong><div class="model">${q.model}</div><div class="explanation">${q.explanation}</div>`;
+    speak(q.jp);
+  } else {
+    fb.className = 'feedback wrong';
+    const mistakes = analyzeMistakes(selected, q.model);
+    let mistakeHtml = mistakes.map(m => `<div class="mistake">• ${m}</div>`).join('');
+    if (!mistakeHtml) {
+      mistakeHtml = '<div class="mistake">• Check particle choice and word order.</div>';
+    }
+    fb.innerHTML = `<strong>Not quite.</strong> Model answer:<div class="model">${q.model}</div><div class="explanation">${q.explanation}</div>${mistakeHtml}<div>Adjust the tiles and try again, or press Next.</div>`;
+  }
+  document.getElementById('nextBtn').disabled = false;
+  document.getElementById('checkBtn').disabled = true;
+}
+
+document.getElementById('checkBtn').onclick = checkAnswer;
+document.getElementById('clearBtn').onclick = () => {
+  selected = [];
+  renderConstruction();
+  renderTiles();
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('checkBtn').disabled = false;
+  document.getElementById('nextBtn').disabled = true;
+};
+document.getElementById('hearBtn').onclick = () => {
+  const q = levels[currentLevel].questions[currentQ];
+  speak(q.jp);
+};
+document.getElementById('hintBtn').onclick = () => {
+  const q = levels[currentLevel].questions[currentQ];
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'block';
+  fb.className = 'feedback';
+  fb.innerHTML = `<div>Hint: ${q.hint}</div>`;
+};
+document.getElementById('nextBtn').onclick = () => {
+  currentQ++;
+  if (currentQ >= levels[currentLevel].questions.length) {
+    if (currentLevel + 1 === unlocked && currentLevel + 1 < levels.length) {
+      unlocked++;
+      localStorage.setItem('tokyoJpUnlocked', unlocked);
+    }
+    if (currentLevel + 1 < levels.length) {
+      currentLevel++;
+      currentQ = 0;
+    } else {
+      alert('You finished all levels! Review any level to practice more.');
+      currentQ = 0;
+    }
+  }
+  loadQuestion();
+};
+
+loadQuestion();
+</script>
+</body>
+</html>
