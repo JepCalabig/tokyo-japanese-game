@@ -15,13 +15,36 @@
     line-height: 1.45;
   }
   .container {
-    max-width: 680px;
+    max-width: 700px;
     margin: 0 auto;
     background: white;
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 6px;
+    border: none;
+    border-radius: 8px;
+    background: #e0e0e0;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: #1976d2;
+    color: white;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
   h1 { font-size: 1.35rem; margin: 0 0 8px; color: #0d47a1; }
   .level-bar {
     display: flex;
@@ -50,6 +73,15 @@
     margin-bottom: 12px;
     font-size: 1.05rem;
   }
+  .vocab {
+    background: #fff8e1;
+    border-left: 4px solid #ffb300;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 0.92rem;
+  }
+  .vocab strong { color: #e65100; }
   .construction {
     min-height: 56px;
     background: #fafafa;
@@ -62,10 +94,7 @@
     gap: 6px;
     align-items: center;
   }
-  .construction .placeholder {
-    color: #90a4ae;
-    font-style: italic;
-  }
+  .construction .placeholder { color: #90a4ae; font-style: italic; }
   .tile, .placed {
     display: inline-block;
     padding: 10px 14px;
@@ -78,18 +107,9 @@
     user-select: none;
     touch-action: manipulation;
   }
-  .tile:active, .placed:active { background: #bbdefb; }
   .placed { background: #c8e6c9; border-color: #81c784; }
-  .tiles-pool {
-    margin: 8px 0 12px;
-    min-height: 60px;
-  }
-  .buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0;
-  }
+  .tiles-pool { margin: 8px 0 12px; min-height: 60px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
   button {
     padding: 12px 16px;
     border: none;
@@ -100,9 +120,8 @@
     color: white;
     touch-action: manipulation;
   }
-  button:hover { background: #1565c0; }
   button.secondary { background: #546e7a; }
-  button.secondary:hover { background: #455a64; }
+  button.download { background: #2e7d32; }
   button:disabled { background: #b0bec5; cursor: not-allowed; }
   .feedback {
     margin-top: 14px;
@@ -112,106 +131,309 @@
   }
   .feedback.correct { background: #e8f5e9; border-left: 4px solid #2e7d32; }
   .feedback.wrong { background: #fff3e0; border-left: 4px solid #ef6c00; }
-  .model { font-weight: 600; color: #0d47a1; margin: 8px 0; }
-  .explanation { margin-top: 6px; }
+  .model { font-weight: 600; color: #0d47a1; margin: 6px 0; }
+  .jp { font-size: 1.1rem; color: #1565c0; margin: 4px 0; }
+  .reply { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #ccc; }
   .mistake { margin: 4px 0; }
-  .level-select {
-    margin-top: 18px;
-    padding-top: 12px;
-    border-top: 1px solid #eee;
-  }
+  .level-select { margin-top: 18px; padding-top: 12px; border-top: 1px solid #eee; }
   .level-select button { margin: 4px; background: #78909c; padding: 8px 12px; }
   .level-select button.active { background: #1976d2; }
   .level-select button.locked { opacity: 0.45; cursor: not-allowed; }
   footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #666; }
+
+  .particle-card, .vocab-item {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-left: 4px solid #1976d2;
+  }
+  .particle-card h3, .vocab-item strong { margin: 0 0 4px; color: #0d47a1; }
+  .particle-card .meaning { font-weight: 600; }
+  .particle-card .example { margin-top: 6px; font-style: italic; color: #333; }
+  .vocab-search {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+  #vocabList { max-height: 70vh; overflow-y: auto; }
+  .download-bar {
+    text-align: center;
+    margin: 12px 0 4px;
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Tokyo Spoken Japanese Trainer</h1>
-  <div class="level-bar">
-    <span id="levelName">Level 1</span>
-    <span id="questionCounter">1 / 6</span>
-  </div>
-  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
-
-  <div class="prompt" id="prompt">Loading...</div>
-
-  <div class="construction" id="construction">
-    <span class="placeholder">Tap words below to build the sentence</span>
+  <div class="download-bar">
+    <button class="download" onclick="downloadCode()">Download this page as HTML</button>
   </div>
 
-  <div class="tiles-pool" id="tilesPool"></div>
-
-  <div class="buttons">
-    <button id="checkBtn">Check</button>
-    <button id="clearBtn" class="secondary">Clear</button>
-    <button id="hearBtn" class="secondary">Hear Model</button>
-    <button id="hintBtn" class="secondary">Hint</button>
-    <button id="nextBtn" class="secondary" disabled>Next</button>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('practice', this)">Practice</button>
+    <button class="tab-btn" onclick="showTab('reference', this)">Particles</button>
+    <button class="tab-btn" onclick="showTab('appendix', this)">Vocabulary</button>
   </div>
 
-  <div class="feedback" id="feedback"></div>
+  <div id="practice" class="tab-content active">
+    <h1>Tokyo Spoken Japanese Trainer</h1>
+    <div class="level-bar">
+      <span id="levelName">Level 1</span>
+      <span id="questionCounter">1 / 6</span>
+    </div>
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
 
-  <div class="level-select" id="levelSelect"></div>
+    <div class="prompt" id="prompt">Loading...</div>
+    <div class="vocab" id="vocab">Vocabulary will appear here</div>
 
-  <footer>
-    Tap words to build polite sentences for Tokyo.<br>
-    Progress saved in your browser.
-  </footer>
+    <div class="construction" id="construction">
+      <span class="placeholder">Tap words below to build the sentence</span>
+    </div>
+
+    <div class="tiles-pool" id="tilesPool"></div>
+
+    <div class="buttons">
+      <button id="checkBtn">Check</button>
+      <button id="clearBtn" class="secondary">Clear</button>
+      <button id="hearBtn" class="secondary">Hear Model</button>
+      <button id="hintBtn" class="secondary">Hint</button>
+      <button id="nextBtn" class="secondary" disabled>Next</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="level-select" id="levelSelect"></div>
+
+    <footer>
+      Tap words to build the Japanese translation.<br>
+      Full vocabulary shown for every sentence. Progress is saved.
+    </footer>
+  </div>
+
+  <div id="reference" class="tab-content">
+    <h1>Particles Reference</h1>
+    <p>Core particles for polite Tokyo Japanese.</p>
+
+    <div class="particle-card">
+      <h3>wa</h3>
+      <div class="meaning">Topic marker — “as for…”, “speaking of…”</div>
+      <div>Marks what the sentence is about. Does not always equal the grammatical subject.</div>
+      <div class="example">watashi wa kankoukyaku desu<br>As for me, I am a tourist.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>ga</h3>
+      <div class="meaning">Subject / focus marker</div>
+      <div>Highlights the subject, especially with new information, likes, abilities, or existence.</div>
+      <div class="example">neko ga suki desu<br>I like cats.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>o</h3>
+      <div class="meaning">Direct object marker</div>
+      <div>Marks the thing the action is done to.</div>
+      <div class="example">ramen o kudasai<br>Ramen, please.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>ni</h3>
+      <div class="meaning">Destination, time, indirect object, existence location</div>
+      <div>To / at a point / for.</div>
+      <div class="example">gakkou ni ikimasu<br>I go to school.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>de</h3>
+      <div class="meaning">Location of action or means / method</div>
+      <div>Where an action happens, or “by means of”.</div>
+      <div class="example">kissaten de tabemasu<br>I eat at a café.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>no</h3>
+      <div class="meaning">Possession or modifier (“of”, “’s”)</div>
+      <div>Connects two nouns.</div>
+      <div class="example">watashi no hon<br>My book.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>to</h3>
+      <div class="meaning">“And” (complete list) or “with”</div>
+      <div class="example">ringo to banana<br>Apples and bananas.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>mo</h3>
+      <div class="meaning">“Also”, “too”, “even”</div>
+      <div class="example">watashi mo ikimasu<br>I will go too.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>kara</h3>
+      <div class="meaning">“From”</div>
+      <div class="example">koko kara<br>From here.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>made</h3>
+      <div class="meaning">“Until”, “up to”, “as far as”</div>
+      <div class="example">go-ji made<br>Until 5 o’clock.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>e</h3>
+      <div class="meaning">Direction (“toward”, “to”)</div>
+      <div class="example">shibuya e ikimasu<br>I go toward Shibuya.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>ka</h3>
+      <div class="meaning">Question marker</div>
+      <div>Turns a statement into a yes/no question.</div>
+      <div class="example">gakusei desu ka?<br>Are you a student?</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>ni vs de</h3>
+      <div>ni = destination or point.<br>de = place of action or means.</div>
+    </div>
+
+    <div class="particle-card">
+      <h3>wa vs ga</h3>
+      <div>wa = known topic.<br>ga = focus or new information.</div>
+    </div>
+  </div>
+
+  <div id="appendix" class="tab-content">
+    <h1>Vocabulary Appendix</h1>
+    <p>All unique words from the practice questions, sorted alphabetically.</p>
+    <input type="text" class="vocab-search" id="vocabSearch" placeholder="Search vocabulary..." oninput="filterVocab()">
+    <div id="vocabList"></div>
+  </div>
 </div>
 
 <script>
+function downloadCode() {
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tokyo-japanese-game.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tabId === 'appendix') buildVocabAppendix();
+}
+
 const levels = [
   {
     name: "Level 1: Basics & Introductions",
     questions: [
       {
-        prompt: "Say: I am a tourist.",
+        prompt: "Translate into Japanese: I am a tourist.",
         model: "watashi wa kankoukyaku desu",
         jp: "私は観光客です",
-        tiles: ["watashi", "wa", "ga", "kankoukyaku", "desu", "imasu", "no"],
-        explanation: "Topic (I) + wa + noun + desu. 'Wa' marks the topic. 'Desu' is the polite copula.",
-        hint: "watashi + wa + kankoukyaku + desu"
+        english: "I am a tourist.",
+        tiles: ["watashi", "wa", "ga", "kankoukyaku", "desu", "imasu"],
+        vocab: [
+          {word: "watashi", en: "I / me"},
+          {word: "wa", en: "topic marker"},
+          {word: "ga", en: "subject marker"},
+          {word: "kankoukyaku", en: "tourist"},
+          {word: "desu", en: "is / am (polite)"},
+          {word: "imasu", en: "exist / am (for people)"}
+        ],
+        explanation: "Topic + wa + noun + desu.",
+        hint: "watashi wa kankoukyaku desu"
       },
       {
-        prompt: "Say: This is my first time in Tokyo.",
+        prompt: "Translate into Japanese: This is my first time in Tokyo.",
         model: "kore wa tokyo de hajimete desu",
         jp: "これは東京ではじめてです",
-        tiles: ["kore", "wa", "tokyo", "de", "ni", "hajimete", "desu", "ga"],
-        explanation: "Topic 'kore wa' + place 'tokyo de' + 'hajimete desu'. 'De' marks the location of the experience.",
+        english: "This is my first time in Tokyo.",
+        tiles: ["kore", "wa", "tokyo", "de", "ni", "hajimete", "desu"],
+        vocab: [
+          {word: "kore", en: "this"},
+          {word: "wa", en: "topic marker"},
+          {word: "tokyo", en: "Tokyo"},
+          {word: "de", en: "at / in (location)"},
+          {word: "ni", en: "to / at (destination or time)"},
+          {word: "hajimete", en: "first time"},
+          {word: "desu", en: "is / am (polite)"}
+        ],
+        explanation: "kore wa + place de + hajimete desu.",
         hint: "kore wa tokyo de hajimete desu"
       },
       {
-        prompt: "Ask: Are you from Tokyo?",
+        prompt: "Translate into Japanese: Are you from Tokyo?",
         model: "tokyo kara desu ka",
         jp: "東京からですか",
-        tiles: ["tokyo", "kara", "de", "desu", "ka", "wa", "imasu"],
-        explanation: "'Kara' = from. End with 'ka' for a question.",
-        hint: "tokyo kara desu ka"
+        english: "Are you from Tokyo?",
+        tiles: ["tokyo", "kara", "de", "desu", "ka"],
+        vocab: [
+          {word: "tokyo", en: "Tokyo"},
+          {word: "kara", en: "from"},
+          {word: "de", en: "at / by means of"},
+          {word: "desu", en: "is / am (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "Place + kara + desu ka.",
+        hint: "tokyo kara desu ka",
+        sampleReply: {en: "Yes, I am from Tokyo.", jp: "はい、東京からです", romaji: "hai tokyo kara desu"}
       },
       {
-        prompt: "Say: Thank you very much.",
+        prompt: "Translate into Japanese: Thank you very much.",
         model: "arigatou gozaimasu",
         jp: "ありがとうございます",
-        tiles: ["arigatou", "gozaimasu", "desu", "sumimasen", "onegaishimasu"],
-        explanation: "Standard polite thank-you for staff and strangers.",
+        english: "Thank you very much.",
+        tiles: ["arigatou", "gozaimasu", "sumimasen"],
+        vocab: [
+          {word: "arigatou", en: "thank you"},
+          {word: "gozaimasu", en: "polite ending (very much)"},
+          {word: "sumimasen", en: "excuse me / sorry"}
+        ],
+        explanation: "Standard polite thank-you.",
         hint: "arigatou gozaimasu"
       },
       {
-        prompt: "Say: Excuse me (to get attention).",
+        prompt: "Translate into Japanese: Excuse me.",
         model: "sumimasen",
         jp: "すみません",
-        tiles: ["sumimasen", "arigatou", "kudasai", "onegaishimasu"],
-        explanation: "Essential starter before any request or question.",
+        english: "Excuse me.",
+        tiles: ["sumimasen", "arigatou"],
+        vocab: [
+          {word: "sumimasen", en: "excuse me / sorry"},
+          {word: "arigatou", en: "thank you"}
+        ],
+        explanation: "Use this to get attention before asking anything.",
         hint: "sumimasen"
       },
       {
-        prompt: "Say: I am American.",
+        prompt: "Translate into Japanese: I am American.",
         model: "watashi wa amerika-jin desu",
         jp: "私はアメリカ人です",
-        tiles: ["watashi", "wa", "ga", "amerika-jin", "desu", "no", "imasu"],
-        explanation: "Nationality ends with -jin. Topic + wa + nationality + desu.",
+        english: "I am American.",
+        tiles: ["watashi", "wa", "amerika-jin", "desu", "ga"],
+        vocab: [
+          {word: "watashi", en: "I / me"},
+          {word: "wa", en: "topic marker"},
+          {word: "ga", en: "subject marker"},
+          {word: "amerika-jin", en: "American (person)"},
+          {word: "desu", en: "is / am (polite)"}
+        ],
+        explanation: "Nationality + -jin.",
         hint: "watashi wa amerika-jin desu"
       }
     ]
@@ -220,52 +442,116 @@ const levels = [
     name: "Level 2: Directions & Metro",
     questions: [
       {
-        prompt: "Ask: Where is the Shibuya station exit?",
-        model: "sumimasen shibuya eki no deguchi wa doko desu ka",
-        jp: "すみません、渋谷駅の出口はどこですか",
-        tiles: ["sumimasen", "shibuya", "eki", "no", "deguchi", "wa", "ga", "doko", "desu", "ka", "de"],
-        explanation: "'No' connects station and exit. 'Wa' marks the topic. 'Doko desu ka' = where?",
-        hint: "sumimasen ... no deguchi wa doko desu ka"
+        prompt: "Translate into Japanese: Does this train go to Shibuya?",
+        model: "kono densha wa shibuya ni ikimasu ka",
+        jp: "この電車は渋谷に行きますか",
+        english: "Does this train go to Shibuya?",
+        tiles: ["kono", "densha", "wa", "shibuya", "ni", "ikimasu", "ka", "de", "e"],
+        vocab: [
+          {word: "kono", en: "this"},
+          {word: "densha", en: "train"},
+          {word: "wa", en: "topic marker"},
+          {word: "shibuya", en: "Shibuya"},
+          {word: "ni", en: "to (destination)"},
+          {word: "ikimasu", en: "go (polite)"},
+          {word: "ka", en: "question marker"},
+          {word: "de", en: "by means of / at"},
+          {word: "e", en: "toward / to"}
+        ],
+        explanation: "kono densha wa + destination ni + ikimasu ka.",
+        hint: "kono densha wa shibuya ni ikimasu ka",
+        sampleReply: {en: "No, this train does not go to Shibuya.", jp: "いいえ、この電車は渋谷に行きません", romaji: "iie kono densha wa shibuya ni ikimasen"}
       },
       {
-        prompt: "Ask: Can I go to Shinjuku on this train?",
-        model: "kono densha de shinjuku ni ikemasu ka",
-        jp: "この電車で新宿に行けますか",
-        tiles: ["kono", "densha", "de", "ni", "shinjuku", "ikemasu", "ka", "wa", "o"],
-        explanation: "'De' = by means of this train. 'Ni' = destination.",
-        hint: "kono densha de shinjuku ni ikemasu ka"
+        prompt: "Translate into Japanese: Where is the exit?",
+        model: "deguchi wa doko desu ka",
+        jp: "出口はどこですか",
+        english: "Where is the exit?",
+        tiles: ["deguchi", "wa", "doko", "desu", "ka", "ga"],
+        vocab: [
+          {word: "deguchi", en: "exit"},
+          {word: "wa", en: "topic marker"},
+          {word: "doko", en: "where"},
+          {word: "desu", en: "is (polite)"},
+          {word: "ka", en: "question marker"},
+          {word: "ga", en: "subject marker"}
+        ],
+        explanation: "Noun wa doko desu ka.",
+        hint: "deguchi wa doko desu ka"
       },
       {
-        prompt: "Say: I want to go from here to Tokyo Station.",
+        prompt: "Translate into Japanese: I want to go from here to Tokyo Station.",
         model: "koko kara tokyo eki made ikitai desu",
         jp: "ここから東京駅まで行きたいです",
-        tiles: ["koko", "kara", "tokyo", "eki", "made", "ni", "ikitai", "desu", "de"],
-        explanation: "'Kara' = from, 'made' = until/to. 'Ikitai desu' = want to go.",
-        hint: "koko kara ... made ikitai desu"
+        english: "I want to go from here to Tokyo Station.",
+        tiles: ["koko", "kara", "tokyo", "eki", "made", "ikitai", "desu", "ni"],
+        vocab: [
+          {word: "koko", en: "here"},
+          {word: "kara", en: "from"},
+          {word: "tokyo", en: "Tokyo"},
+          {word: "eki", en: "station"},
+          {word: "made", en: "until / up to"},
+          {word: "ikitai", en: "want to go"},
+          {word: "desu", en: "polite ending"},
+          {word: "ni", en: "to (destination)"}
+        ],
+        explanation: "koko kara + destination made + ikitai desu.",
+        hint: "koko kara tokyo eki made ikitai desu"
       },
       {
-        prompt: "Ask: Which platform is for the Yamanote Line?",
+        prompt: "Translate into Japanese: Which platform is for the Yamanote Line?",
         model: "yamanote sen no hoomu wa doko desu ka",
         jp: "山手線のホームはどこですか",
-        tiles: ["yamanote", "sen", "no", "hoomu", "wa", "doko", "desu", "ka", "de", "ga"],
-        explanation: "'No' connects the line and the platform.",
+        english: "Which platform is for the Yamanote Line?",
+        tiles: ["yamanote", "sen", "no", "hoomu", "wa", "doko", "desu", "ka"],
+        vocab: [
+          {word: "yamanote", en: "Yamanote"},
+          {word: "sen", en: "line"},
+          {word: "no", en: "of / ’s (modifier)"},
+          {word: "hoomu", en: "platform"},
+          {word: "wa", en: "topic marker"},
+          {word: "doko", en: "where"},
+          {word: "desu", en: "is (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "Line no platform wa doko desu ka.",
         hint: "yamanote sen no hoomu wa doko desu ka"
       },
       {
-        prompt: "Say: Please tell me the way to the subway.",
+        prompt: "Translate into Japanese: Please tell me the way to the subway.",
         model: "chikatetsu e no michi o oshiete kudasai",
         jp: "地下鉄への道を教えてください",
-        tiles: ["chikatetsu", "e", "no", "michi", "o", "oshiete", "kudasai", "ni", "de", "wa"],
-        explanation: "'O' marks the object. 'Kudasai' makes a polite request.",
-        hint: "... o oshiete kudasai"
+        english: "Please tell me the way to the subway.",
+        tiles: ["chikatetsu", "e", "no", "michi", "o", "oshiete", "kudasai"],
+        vocab: [
+          {word: "chikatetsu", en: "subway"},
+          {word: "e", en: "toward"},
+          {word: "no", en: "of / modifier"},
+          {word: "michi", en: "way / road"},
+          {word: "o", en: "object marker"},
+          {word: "oshiete", en: "tell (te-form)"},
+          {word: "kudasai", en: "please"}
+        ],
+        explanation: "Object o + verb-te + kudasai.",
+        hint: "chikatetsu e no michi o oshiete kudasai"
       },
       {
-        prompt: "Ask: Is this the train to Ikebukuro?",
+        prompt: "Translate into Japanese: Is this the train to Ikebukuro?",
         model: "kore wa ikebukuro iki desu ka",
         jp: "これは池袋行きですか",
-        tiles: ["kore", "wa", "ikebukuro", "iki", "desu", "ka", "ni", "de", "ga"],
-        explanation: "'Iki' means bound for. Clear and polite for station staff.",
-        hint: "kore wa ikebukuro iki desu ka"
+        english: "Is this the train to Ikebukuro?",
+        tiles: ["kore", "wa", "ikebukuro", "iki", "desu", "ka"],
+        vocab: [
+          {word: "kore", en: "this"},
+          {word: "wa", en: "topic marker"},
+          {word: "ikebukuro", en: "Ikebukuro"},
+          {word: "iki", en: "bound for / going to"},
+          {word: "desu", en: "is (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "kore wa + destination iki desu ka.",
+        hint: "kore wa ikebukuro iki desu ka",
+        sampleReply: {en: "Yes, this train goes to Ikebukuro.", jp: "はい、これは池袋行きです", romaji: "hai kore wa ikebukuro iki desu"}
       }
     ]
   },
@@ -273,52 +559,97 @@ const levels = [
     name: "Level 3: Ordering Food",
     questions: [
       {
-        prompt: "Order: One ramen, please.",
+        prompt: "Translate into Japanese: One ramen, please.",
         model: "ramen o hitotsu kudasai",
         jp: "ラーメンを一つください",
-        tiles: ["ramen", "o", "hitotsu", "kudasai", "wa", "ni", "onegaishimasu", "desu"],
-        explanation: "'O' marks the object. 'Hitotsu' = one. 'Kudasai' = please.",
+        english: "One ramen, please.",
+        tiles: ["ramen", "o", "hitotsu", "kudasai", "onegaishimasu"],
+        vocab: [
+          {word: "ramen", en: "ramen"},
+          {word: "o", en: "object marker"},
+          {word: "hitotsu", en: "one (general counter)"},
+          {word: "kudasai", en: "please (give me)"},
+          {word: "onegaishimasu", en: "please (polite request)"}
+        ],
+        explanation: "Food o + number + kudasai.",
         hint: "ramen o hitotsu kudasai"
       },
       {
-        prompt: "Say: Water, please.",
+        prompt: "Translate into Japanese: Water, please.",
         model: "mizu o onegaishimasu",
         jp: "水をお願いします",
-        tiles: ["mizu", "o", "onegaishimasu", "kudasai", "wa", "desu", "ka"],
-        explanation: "'Onegaishimasu' is a soft polite request.",
+        english: "Water, please.",
+        tiles: ["mizu", "o", "onegaishimasu", "kudasai"],
+        vocab: [
+          {word: "mizu", en: "water"},
+          {word: "o", en: "object marker"},
+          {word: "onegaishimasu", en: "please (polite request)"},
+          {word: "kudasai", en: "please"}
+        ],
+        explanation: "Item o onegaishimasu.",
         hint: "mizu o onegaishimasu"
       },
       {
-        prompt: "Ask: What do you recommend?",
+        prompt: "Translate into Japanese: What do you recommend?",
         model: "osusume wa nan desu ka",
         jp: "おすすめは何ですか",
-        tiles: ["osusume", "wa", "nan", "desu", "ka", "ga", "o", "no"],
-        explanation: "Topic + wa + nan desu ka. Very useful at restaurants.",
+        english: "What do you recommend?",
+        tiles: ["osusume", "wa", "nan", "desu", "ka"],
+        vocab: [
+          {word: "osusume", en: "recommendation"},
+          {word: "wa", en: "topic marker"},
+          {word: "nan", en: "what"},
+          {word: "desu", en: "is (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "osusume wa nan desu ka.",
         hint: "osusume wa nan desu ka"
       },
       {
-        prompt: "Say: The check, please.",
+        prompt: "Translate into Japanese: The check, please.",
         model: "okaikei o onegaishimasu",
         jp: "お会計をお願いします",
-        tiles: ["okaikei", "o", "onegaishimasu", "kudasai", "wa", "desu"],
-        explanation: "Standard way to ask for the bill.",
+        english: "The check, please.",
+        tiles: ["okaikei", "o", "onegaishimasu"],
+        vocab: [
+          {word: "okaikei", en: "the bill / check"},
+          {word: "o", en: "object marker"},
+          {word: "onegaishimasu", en: "please"}
+        ],
+        explanation: "okaikei o onegaishimasu.",
         hint: "okaikei o onegaishimasu"
       },
       {
-        prompt: "Say: I would like sushi.",
+        prompt: "Translate into Japanese: I would like sushi.",
         model: "sushi o onegaishimasu",
         jp: "寿司をお願いします",
-        tiles: ["sushi", "o", "onegaishimasu", "kudasai", "wa", "ni", "desu"],
-        explanation: "Simple polite request that works for most food.",
+        english: "I would like sushi.",
+        tiles: ["sushi", "o", "onegaishimasu", "kudasai"],
+        vocab: [
+          {word: "sushi", en: "sushi"},
+          {word: "o", en: "object marker"},
+          {word: "onegaishimasu", en: "please"},
+          {word: "kudasai", en: "please"}
+        ],
+        explanation: "Food o onegaishimasu.",
         hint: "sushi o onegaishimasu"
       },
       {
-        prompt: "Ask: Is this spicy?",
+        prompt: "Translate into Japanese: Is this spicy?",
         model: "kore wa karai desu ka",
         jp: "これは辛いですか",
-        tiles: ["kore", "wa", "karai", "desu", "ka", "ga", "o", "ni"],
-        explanation: "Topic + wa + adjective + desu ka.",
-        hint: "kore wa karai desu ka"
+        english: "Is this spicy?",
+        tiles: ["kore", "wa", "karai", "desu", "ka"],
+        vocab: [
+          {word: "kore", en: "this"},
+          {word: "wa", en: "topic marker"},
+          {word: "karai", en: "spicy"},
+          {word: "desu", en: "is (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "kore wa + adjective + desu ka.",
+        hint: "kore wa karai desu ka",
+        sampleReply: {en: "Yes, it is a little spicy.", jp: "はい、少し辛いです", romaji: "hai sukoshi karai desu"}
       }
     ]
   },
@@ -326,51 +657,99 @@ const levels = [
     name: "Level 4: Shopping & Souvenirs",
     questions: [
       {
-        prompt: "Ask: How much is this?",
+        prompt: "Translate into Japanese: How much is this?",
         model: "kore wa ikura desu ka",
         jp: "これはいくらですか",
-        tiles: ["kore", "wa", "ikura", "desu", "ka", "ga", "o", "no"],
-        explanation: "Standard price question.",
+        english: "How much is this?",
+        tiles: ["kore", "wa", "ikura", "desu", "ka"],
+        vocab: [
+          {word: "kore", en: "this"},
+          {word: "wa", en: "topic marker"},
+          {word: "ikura", en: "how much"},
+          {word: "desu", en: "is (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "kore wa ikura desu ka.",
         hint: "kore wa ikura desu ka"
       },
       {
-        prompt: "Say: I want to buy a souvenir.",
+        prompt: "Translate into Japanese: I want to buy a souvenir.",
         model: "omiyage o kaitai desu",
         jp: "お土産を買いたいです",
-        tiles: ["omiyage", "o", "kaitai", "desu", "wa", "ni", "kudasai", "no"],
-        explanation: "'O' marks what you want. 'Kaitai desu' = want to buy.",
+        english: "I want to buy a souvenir.",
+        tiles: ["omiyage", "o", "kaitai", "desu"],
+        vocab: [
+          {word: "omiyage", en: "souvenir"},
+          {word: "o", en: "object marker"},
+          {word: "kaitai", en: "want to buy"},
+          {word: "desu", en: "polite ending"}
+        ],
+        explanation: "omiyage o kaitai desu.",
         hint: "omiyage o kaitai desu"
       },
       {
-        prompt: "Ask: Do you have this in a smaller size?",
-        model: "kore wa motto chiisai saizu ga arimasu ka",
-        jp: "これはもっと小さいサイズがありますか",
-        tiles: ["kore", "wa", "motto", "chiisai", "saizu", "ga", "arimasu", "ka", "o", "ni", "desu"],
-        explanation: "'Ga' marks the subject of 'arimasu' (exists).",
-        hint: "... saizu ga arimasu ka"
-      },
-      {
-        prompt: "Say: This one too, please.",
+        prompt: "Translate into Japanese: This one too, please.",
         model: "kore mo onegaishimasu",
         jp: "これもお願いします",
-        tiles: ["kore", "mo", "onegaishimasu", "wa", "o", "kudasai", "desu"],
-        explanation: "'Mo' = also / too. Common when adding items.",
+        english: "This one too, please.",
+        tiles: ["kore", "mo", "onegaishimasu", "o"],
+        vocab: [
+          {word: "kore", en: "this"},
+          {word: "mo", en: "also / too"},
+          {word: "onegaishimasu", en: "please"},
+          {word: "o", en: "object marker"}
+        ],
+        explanation: "kore mo onegaishimasu.",
         hint: "kore mo onegaishimasu"
       },
       {
-        prompt: "Ask: Can I pay by card?",
+        prompt: "Translate into Japanese: Can I pay by card?",
         model: "kaado de haraemasu ka",
         jp: "カードで払えますか",
-        tiles: ["kaado", "de", "haraemasu", "ka", "ni", "o", "wa", "desu"],
-        explanation: "'De' = by means of (card).",
-        hint: "kaado de haraemasu ka"
+        english: "Can I pay by card?",
+        tiles: ["kaado", "de", "haraemasu", "ka", "ni"],
+        vocab: [
+          {word: "kaado", en: "card"},
+          {word: "de", en: "by means of"},
+          {word: "haraemasu", en: "can pay"},
+          {word: "ka", en: "question marker"},
+          {word: "ni", en: "to"}
+        ],
+        explanation: "kaado de haraemasu ka.",
+        hint: "kaado de haraemasu ka",
+        sampleReply: {en: "Yes, you can pay by card.", jp: "はい、カードで払えます", romaji: "hai kaado de haraemasu"}
       },
       {
-        prompt: "Say: Thank you. I'll take this.",
+        prompt: "Translate into Japanese: Do you have a smaller size?",
+        model: "motto chiisai saizu ga arimasu ka",
+        jp: "もっと小さいサイズがありますか",
+        english: "Do you have a smaller size?",
+        tiles: ["motto", "chiisai", "saizu", "ga", "arimasu", "ka"],
+        vocab: [
+          {word: "motto", en: "more"},
+          {word: "chiisai", en: "small"},
+          {word: "saizu", en: "size"},
+          {word: "ga", en: "subject marker"},
+          {word: "arimasu", en: "there is / have"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "motto chiisai saizu ga arimasu ka.",
+        hint: "motto chiisai saizu ga arimasu ka"
+      },
+      {
+        prompt: "Translate into Japanese: Thank you. I'll take this.",
         model: "arigatou gozaimasu kore o kudasai",
         jp: "ありがとうございます、これをください",
-        tiles: ["arigatou", "gozaimasu", "kore", "o", "kudasai", "wa", "ni", "onegaishimasu"],
-        explanation: "Thank + object + o + kudasai.",
+        english: "Thank you. I'll take this.",
+        tiles: ["arigatou", "gozaimasu", "kore", "o", "kudasai"],
+        vocab: [
+          {word: "arigatou", en: "thank you"},
+          {word: "gozaimasu", en: "polite ending"},
+          {word: "kore", en: "this"},
+          {word: "o", en: "object marker"},
+          {word: "kudasai", en: "please"}
+        ],
+        explanation: "Thank you + kore o kudasai.",
         hint: "arigatou gozaimasu kore o kudasai"
       }
     ]
@@ -379,51 +758,104 @@ const levels = [
     name: "Level 5: Mixed Real Scenarios",
     questions: [
       {
-        prompt: "At a station: How do I get to Asakusa from here?",
+        prompt: "Translate into Japanese: Excuse me, how do I get to Asakusa from here?",
         model: "sumimasen koko kara asakusa made dou ikimasu ka",
         jp: "すみません、ここから浅草までどう行きますか",
-        tiles: ["sumimasen", "koko", "kara", "asakusa", "made", "dou", "ikimasu", "ka", "ni", "de", "wa"],
-        explanation: "Sumimasen + from-to + how do I go.",
+        english: "Excuse me, how do I get to Asakusa from here?",
+        tiles: ["sumimasen", "koko", "kara", "asakusa", "made", "dou", "ikimasu", "ka"],
+        vocab: [
+          {word: "sumimasen", en: "excuse me"},
+          {word: "koko", en: "here"},
+          {word: "kara", en: "from"},
+          {word: "asakusa", en: "Asakusa"},
+          {word: "made", en: "until / to"},
+          {word: "dou", en: "how"},
+          {word: "ikimasu", en: "go (polite)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "sumimasen + koko kara destination made dou ikimasu ka.",
         hint: "sumimasen koko kara asakusa made dou ikimasu ka"
       },
       {
-        prompt: "At a restaurant: I'd like the ramen and also water, please.",
+        prompt: "Translate into Japanese: I'd like the ramen and water, please.",
         model: "ramen to mizu o onegaishimasu",
         jp: "ラーメンと水をお願いします",
-        tiles: ["ramen", "to", "mizu", "o", "onegaishimasu", "wa", "ni", "kudasai", "desu"],
-        explanation: "'To' connects the two items in one request.",
+        english: "I'd like the ramen and water, please.",
+        tiles: ["ramen", "to", "mizu", "o", "onegaishimasu"],
+        vocab: [
+          {word: "ramen", en: "ramen"},
+          {word: "to", en: "and"},
+          {word: "mizu", en: "water"},
+          {word: "o", en: "object marker"},
+          {word: "onegaishimasu", en: "please"}
+        ],
+        explanation: "item to item o onegaishimasu.",
         hint: "ramen to mizu o onegaishimasu"
       },
       {
-        prompt: "Shopping: This is a souvenir for a friend. Do you have a gift box?",
-        model: "kore wa tomodachi e no omiyage desu gifuto bakkusu wa arimasu ka",
-        jp: "これは友達へのお土産です。ギフトボックスはありますか",
-        tiles: ["kore", "wa", "tomodachi", "e", "no", "omiyage", "desu", "gifuto", "bakkusu", "wa", "arimasu", "ka", "ga", "o"],
-        explanation: "Explain purpose, then ask if the box exists.",
-        hint: "kore wa ... desu. ... wa arimasu ka"
-      },
-      {
-        prompt: "On the metro: Is this seat free?",
+        prompt: "Translate into Japanese: Is this seat free?",
         model: "kono seki wa aite imasu ka",
         jp: "この席は空いていますか",
-        tiles: ["kono", "seki", "wa", "aite", "imasu", "ka", "ga", "desu", "o"],
-        explanation: "'Aite imasu' = is open/available.",
-        hint: "kono seki wa aite imasu ka"
+        english: "Is this seat free?",
+        tiles: ["kono", "seki", "wa", "aite", "imasu", "ka"],
+        vocab: [
+          {word: "kono", en: "this"},
+          {word: "seki", en: "seat"},
+          {word: "wa", en: "topic marker"},
+          {word: "aite", en: "open / free"},
+          {word: "imasu", en: "is (state)"},
+          {word: "ka", en: "question marker"}
+        ],
+        explanation: "kono seki wa aite imasu ka.",
+        hint: "kono seki wa aite imasu ka",
+        sampleReply: {en: "Yes, it is free.", jp: "はい、空いています", romaji: "hai aite imasu"}
       },
       {
-        prompt: "To a stranger: Sorry, can you take a photo of us?",
+        prompt: "Translate into Japanese: Sorry, can you take a photo of us?",
         model: "sumimasen shashin o totte kudasai",
         jp: "すみません、写真を撮ってください",
-        tiles: ["sumimasen", "shashin", "o", "totte", "kudasai", "wa", "ni", "onegaishimasu"],
-        explanation: "Object + o + verb-te form + kudasai.",
+        english: "Sorry, can you take a photo of us?",
+        tiles: ["sumimasen", "shashin", "o", "totte", "kudasai"],
+        vocab: [
+          {word: "sumimasen", en: "sorry / excuse me"},
+          {word: "shashin", en: "photo"},
+          {word: "o", en: "object marker"},
+          {word: "totte", en: "take (te-form)"},
+          {word: "kudasai", en: "please"}
+        ],
+        explanation: "sumimasen + object o + verb-te kudasai.",
         hint: "sumimasen shashin o totte kudasai"
       },
       {
-        prompt: "Leaving a shop: Thank you very much. Goodbye.",
+        prompt: "Translate into Japanese: This is a souvenir for a friend.",
+        model: "kore wa tomodachi e no omiyage desu",
+        jp: "これは友達へのお土産です",
+        english: "This is a souvenir for a friend.",
+        tiles: ["kore", "wa", "tomodachi", "e", "no", "omiyage", "desu"],
+        vocab: [
+          {word: "kore", en: "this"},
+          {word: "wa", en: "topic marker"},
+          {word: "tomodachi", en: "friend"},
+          {word: "e", en: "toward / for"},
+          {word: "no", en: "modifier / of"},
+          {word: "omiyage", en: "souvenir"},
+          {word: "desu", en: "is (polite)"}
+        ],
+        explanation: "kore wa tomodachi e no omiyage desu.",
+        hint: "kore wa tomodachi e no omiyage desu"
+      },
+      {
+        prompt: "Translate into Japanese: Thank you very much. Goodbye.",
         model: "arigatou gozaimasu sayounara",
         jp: "ありがとうございます、さようなら",
-        tiles: ["arigatou", "gozaimasu", "sayounara", "sumimasen", "kudasai", "desu"],
-        explanation: "Polite closing. Fine for shops.",
+        english: "Thank you very much. Goodbye.",
+        tiles: ["arigatou", "gozaimasu", "sayounara"],
+        vocab: [
+          {word: "arigatou", en: "thank you"},
+          {word: "gozaimasu", en: "polite ending"},
+          {word: "sayounara", en: "goodbye"}
+        ],
+        explanation: "Polite closing.",
         hint: "arigatou gozaimasu sayounara"
       }
     ]
@@ -434,16 +866,46 @@ let currentLevel = 0;
 let currentQ = 0;
 let unlocked = parseInt(localStorage.getItem('tokyoJpUnlocked') || '1');
 let selected = [];
+let allVocab = [];
+
+function buildVocabAppendix() {
+  if (allVocab.length === 0) {
+    const map = new Map();
+    levels.forEach(level => {
+      level.questions.forEach(q => {
+        (q.vocab || []).forEach(v => {
+          if (!map.has(v.word)) map.set(v.word, v.en);
+        });
+      });
+    });
+    allVocab = Array.from(map.entries())
+      .map(([word, en]) => ({word, en}))
+      .sort((a, b) => a.word.localeCompare(b.word));
+  }
+  renderVocabList(allVocab);
+}
+
+function renderVocabList(list) {
+  const container = document.getElementById('vocabList');
+  container.innerHTML = list.map(v => 
+    `<div class="vocab-item"><strong>${v.word}</strong> — ${v.en}</div>`
+  ).join('');
+}
+
+function filterVocab() {
+  const term = document.getElementById('vocabSearch').value.toLowerCase();
+  const filtered = allVocab.filter(v => 
+    v.word.toLowerCase().includes(term) || v.en.toLowerCase().includes(term)
+  );
+  renderVocabList(filtered);
+}
 
 function normalize(s) {
   return s.toLowerCase().replace(/[.,!?]/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function speak(text) {
-  if (!window.speechSynthesis) {
-    alert('Speech not supported in this browser.');
-    return;
-  }
+  if (!window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'ja-JP';
   u.rate = 0.9;
@@ -458,6 +920,16 @@ function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function renderVocab(q) {
+  const el = document.getElementById('vocab');
+  if (!q.vocab || q.vocab.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = '<strong>Vocabulary:</strong><br>' +
+    q.vocab.map(v => `${v.word} = ${v.en}`).join(' &nbsp;·&nbsp; ');
 }
 
 function renderConstruction() {
@@ -487,14 +959,11 @@ function renderTiles() {
 
   const counts = {};
   q.tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
-  selected.forEach(t => {
-    if (counts[t] !== undefined) counts[t]--;
-  });
+  selected.forEach(t => { if (counts[t] !== undefined) counts[t]--; });
 
   const toShow = [];
   Object.keys(counts).forEach(word => {
-    const remaining = Math.max(0, counts[word]);
-    for (let i = 0; i < remaining; i++) toShow.push(word);
+    for (let i = 0; i < Math.max(0, counts[word]); i++) toShow.push(word);
   });
 
   shuffle(toShow).forEach(word => {
@@ -517,6 +986,7 @@ function loadQuestion() {
   document.getElementById('levelName').textContent = level.name;
   document.getElementById('questionCounter').textContent = `${currentQ + 1} / ${level.questions.length}`;
   document.getElementById('prompt').textContent = q.prompt;
+  renderVocab(q);
   document.getElementById('feedback').style.display = 'none';
   document.getElementById('nextBtn').disabled = true;
   document.getElementById('checkBtn').disabled = false;
@@ -528,8 +998,7 @@ function loadQuestion() {
 
 function updateProgress() {
   const total = levels[currentLevel].questions.length;
-  const pct = (currentQ / total) * 100;
-  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressFill').style.width = (currentQ / total * 100) + '%';
 }
 
 function updateLevelButtons() {
@@ -556,42 +1025,32 @@ function updateLevelButtons() {
 
 function analyzeMistakes(selected, model) {
   const mistakes = [];
-  const modelWords = model.split(' ');
-  const politeEndings = ['desu', 'masu', 'kudasai', 'onegaishimasu', 'gozaimasu', 'imasu', 'ikemasu', 'arimasu', 'haraemasu', 'ikitai'];
-
-  const hasPolite = selected.some(w => politeEndings.includes(w));
-  if (!hasPolite && modelWords.some(w => politeEndings.includes(w))) {
-    mistakes.push('Missing a polite ending (desu, masu, kudasai, onegaishimasu, etc.).');
+  const modelWords = model.split(/\s+/);
+  const polite = ['desu','masu','kudasai','onegaishimasu','gozaimasu','imasu','ikimasu','arimasu','haraemasu','ikitai'];
+  if (!selected.some(w => polite.includes(w)) && modelWords.some(w => polite.includes(w))) {
+    mistakes.push('Missing a polite ending (desu, masu, kudasai, onegaishimasu…).');
   }
-
-  const particleChecks = [
-    { particle: 'wa', name: 'topic marker wa' },
-    { particle: 'ga', name: 'subject marker ga' },
-    { particle: 'o', name: 'object marker o' },
-    { particle: 'ni', name: 'destination/time marker ni' },
-    { particle: 'de', name: 'location/means marker de' },
-    { particle: 'no', name: 'possessive/modifier no' },
-    { particle: 'kara', name: 'from marker kara' },
-    { particle: 'made', name: 'until marker made' },
-    { particle: 'to', name: 'and/with marker to' },
-    { particle: 'mo', name: 'also marker mo' },
-    { particle: 'e', name: 'direction marker e' },
-    { particle: 'ka', name: 'question marker ka' }
+  const particles = [
+    {p:'wa', name:'topic marker wa'},
+    {p:'ga', name:'subject marker ga'},
+    {p:'o', name:'object marker o'},
+    {p:'ni', name:'destination marker ni'},
+    {p:'de', name:'location/means marker de'},
+    {p:'no', name:'modifier no'},
+    {p:'kara', name:'from marker kara'},
+    {p:'made', name:'until marker made'},
+    {p:'to', name:'and marker to'},
+    {p:'mo', name:'also marker mo'},
+    {p:'ka', name:'question marker ka'}
   ];
-
-  particleChecks.forEach(p => {
-    const inModel = modelWords.includes(p.particle);
-    const inSelected = selected.includes(p.particle);
-    if (inModel && !inSelected) {
-      mistakes.push(`Missing the ${p.name}.`);
+  particles.forEach(item => {
+    if (modelWords.includes(item.p) && !selected.includes(item.p)) {
+      mistakes.push(`Missing the ${item.name}.`);
     }
   });
-
-  // Simple order note if lengths match but content differs
   if (selected.length === modelWords.length && selected.join(' ') !== model) {
-    mistakes.push('Word order looks off. Japanese usually puts the topic early and the verb/polite ending last.');
+    mistakes.push('Word order is different from the model. Topic usually comes early and the polite ending last.');
   }
-
   return mistakes;
 }
 
@@ -602,18 +1061,37 @@ function checkAnswer() {
   const fb = document.getElementById('feedback');
   fb.style.display = 'block';
 
+  let replyHtml = '';
+  if (q.sampleReply) {
+    replyHtml = `<div class="reply"><strong>Sample reply you might hear:</strong><br>
+      ${q.sampleReply.en}<br>
+      <span class="jp">${q.sampleReply.jp}</span><br>
+      <em>${q.sampleReply.romaji}</em></div>`;
+  }
+
   if (user === modelNorm) {
     fb.className = 'feedback correct';
-    fb.innerHTML = `<strong>Correct!</strong><div class="model">${q.model}</div><div class="explanation">${q.explanation}</div>`;
+    fb.innerHTML = `<strong>Correct!</strong>
+      <div class="model">${q.model}</div>
+      <div class="jp">${q.jp}</div>
+      <div>${q.english}</div>
+      <div class="explanation">${q.explanation}</div>
+      ${replyHtml}`;
     speak(q.jp);
   } else {
     fb.className = 'feedback wrong';
     const mistakes = analyzeMistakes(selected, q.model);
-    let mistakeHtml = mistakes.map(m => `<div class="mistake">• ${m}</div>`).join('');
-    if (!mistakeHtml) {
-      mistakeHtml = '<div class="mistake">• Check particle choice and word order.</div>';
-    }
-    fb.innerHTML = `<strong>Not quite.</strong> Model answer:<div class="model">${q.model}</div><div class="explanation">${q.explanation}</div>${mistakeHtml}<div>Adjust the tiles and try again, or press Next.</div>`;
+    const mistakeHtml = mistakes.length
+      ? mistakes.map(m => `<div class="mistake">• ${m}</div>`).join('')
+      : '<div class="mistake">• Check particles and word order.</div>';
+    fb.innerHTML = `<strong>Not quite.</strong>
+      <div class="model">${q.model}</div>
+      <div class="jp">${q.jp}</div>
+      <div>${q.english}</div>
+      <div class="explanation">${q.explanation}</div>
+      ${mistakeHtml}
+      ${replyHtml}
+      <div style="margin-top:8px;">Adjust the tiles and try again, or press Next.</div>`;
   }
   document.getElementById('nextBtn').disabled = false;
   document.getElementById('checkBtn').disabled = true;
@@ -629,8 +1107,7 @@ document.getElementById('clearBtn').onclick = () => {
   document.getElementById('nextBtn').disabled = true;
 };
 document.getElementById('hearBtn').onclick = () => {
-  const q = levels[currentLevel].questions[currentQ];
-  speak(q.jp);
+  speak(levels[currentLevel].questions[currentQ].jp);
 };
 document.getElementById('hintBtn').onclick = () => {
   const q = levels[currentLevel].questions[currentQ];
@@ -644,13 +1121,13 @@ document.getElementById('nextBtn').onclick = () => {
   if (currentQ >= levels[currentLevel].questions.length) {
     if (currentLevel + 1 === unlocked && currentLevel + 1 < levels.length) {
       unlocked++;
-      localStorage.setItem('tokyoJpUnlocked', unlocked);
+      localStorage.setItem('tokyoJpUnlocked', unlocked.toString());
     }
     if (currentLevel + 1 < levels.length) {
       currentLevel++;
       currentQ = 0;
     } else {
-      alert('You finished all levels! Review any level to practice more.');
+      alert('You finished all levels! You can review any level.');
       currentQ = 0;
     }
   }
